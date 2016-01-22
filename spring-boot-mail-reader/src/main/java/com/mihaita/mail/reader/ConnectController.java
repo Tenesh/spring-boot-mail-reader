@@ -32,12 +32,24 @@ public class ConnectController {
 	    PrintStream ps = new PrintStream(baos);
 	    
 		System.setOut(ps);
-
-		SpringBootMailReaderApplication.getFolders(username, password, server, protocol, port).stream().map( f -> f.toString() + "<br/>").forEach(sb::append);
-	    System.out.flush();
-		System.setOut(stdout);     
+		String logs = "";
+		
+		try {
+			String debug = System.getProperty("javax.net.debug");
+			System.out.println("Starting to log from here: javax.net.debug = " + debug);
+			SpringBootMailReaderApplication.getFolders(username, password, server, protocol, port).stream().map( f -> f.toString() + "<br/>").forEach(sb::append);
+		} catch(Exception e) {
+		    System.out.flush();
+			logs =  baos.toString();
+			
+			throw new IllegalStateException("Oops: " + e + " Logs: " + logs, e);
+		} finally {
+		    System.out.flush();
+			System.setOut(stdout);	
+		}     
+		
 		log.info("Connect: Done");
-		String logs =  baos.toString();
+		logs =  baos.toString();
 		logs.replace("\n", "<br/>");
 		
 		return "Folders: " + sb + " \nSSL: " + logs;
