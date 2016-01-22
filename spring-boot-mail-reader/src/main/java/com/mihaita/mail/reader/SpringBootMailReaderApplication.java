@@ -33,10 +33,10 @@ public class SpringBootMailReaderApplication {
 			
 			SSLContext context = SSLContext.getDefault();
 			SSLSocketFactory sf = context.getSocketFactory();
-			System.out.println("================================================");
-			System.out.println("getSupportedCipherSuites: " + Arrays.toString(sf.getSupportedCipherSuites()));
-			System.out.println("getDefaultCipherSuites: " + Arrays.toString(sf.getDefaultCipherSuites()));
-			System.out.println("================================================");
+			log.info("================================================");
+			log.info("getSupportedCipherSuites: " + Arrays.toString(sf.getSupportedCipherSuites()));
+			log.info("getDefaultCipherSuites: " + Arrays.toString(sf.getDefaultCipherSuites()));
+			log.info("================================================");
 			String username = (String) propertySource.getProperty("username");
 			String password = (String) propertySource.getProperty("password");
 			String serverAddress = (String) propertySource.getProperty("server");
@@ -62,7 +62,7 @@ public class SpringBootMailReaderApplication {
 					store.connect(serverAddress, username, password);
 				}
 				
-				getRoots(store.getDefaultFolder()).forEach(System.out::println);
+				getRoots(store.getDefaultFolder()).stream().map( f -> f.toString()).forEach(log::info);
 				
 			} catch (MessagingException e) {
 				log.severe("Error when connecting to mailbox: " + e);
