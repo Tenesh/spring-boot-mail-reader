@@ -1,5 +1,6 @@
 package com.mihaita.mail.reader;
 
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,6 +46,7 @@ public class SpringBootMailReaderApplication extends SpringBootServletInitialize
 			log.info("================================================");
 			log.info("getSupportedCipherSuites: " + Arrays.toString(sf.getSupportedCipherSuites()));
 			log.info("getDefaultCipherSuites: " + Arrays.toString(sf.getDefaultCipherSuites()));
+			log.info("getProviders: " + Arrays.toString(Security.getProviders()));
 			log.info("================================================");
 			String username = (String) propertySource.getProperty("username");
 			if (username == null) {

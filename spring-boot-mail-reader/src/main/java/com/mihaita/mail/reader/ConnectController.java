@@ -2,10 +2,14 @@ package com.mihaita.mail.reader;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.security.Security;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import javax.mail.MessagingException;
 import javax.naming.AuthenticationException;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,7 +40,12 @@ public class ConnectController {
 		
 		try {
 			String debug = System.getProperty("javax.net.debug");
-			System.out.println("Starting to log from here: javax.net.debug = " + debug);
+			log.info("Starting to log from here: javax.net.debug = " + debug);
+			SSLContext context = SSLContext.getDefault();
+			SSLSocketFactory sf = context.getSocketFactory();
+			log.info("getSupportedCipherSuites: " + Arrays.toString(sf.getSupportedCipherSuites()));
+			log.info("getDefaultCipherSuites: " + Arrays.toString(sf.getDefaultCipherSuites()));
+			log.info("getProviders: " + Arrays.toString(Security.getProviders()));
 			SpringBootMailReaderApplication.getFolders(username, password, server, protocol, port).stream().map( f -> f.toString() + "<br/>").forEach(sb::append);
 		} catch(Exception e) {
 		    System.out.flush();
