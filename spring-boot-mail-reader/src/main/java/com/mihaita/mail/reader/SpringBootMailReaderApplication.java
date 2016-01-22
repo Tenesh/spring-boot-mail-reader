@@ -17,15 +17,24 @@ import javax.net.ssl.SSLSocketFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.web.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.SimpleCommandLinePropertySource;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 @SpringBootApplication
-public class SpringBootMailReaderApplication {
+@EnableWebMvc
+@WebAppConfiguration
+public class SpringBootMailReaderApplication extends SpringBootServletInitializer {
 	private static final String SSL_FACTORY = "javax.net.ssl.SSLSocketFactory";
 	private static final Logger log = Logger.getLogger(SpringBootMailReaderApplication.class.getSimpleName());
-	
+	static {
+
+		System.setProperty("javax.net.debug", "ssl");
+	}
 	@Bean
 	public CommandLineRunner runner() {
 		return args -> {
@@ -38,48 +47,55 @@ public class SpringBootMailReaderApplication {
 			log.info("getDefaultCipherSuites: " + Arrays.toString(sf.getDefaultCipherSuites()));
 			log.info("================================================");
 			String username = (String) propertySource.getProperty("username");
+			if (username == null) {
+				log.warning("no username provided. stop!");
+				return;
+			}
 			String password = (String) propertySource.getProperty("password");
-			String serverAddress = (String) propertySource.getProperty("server");
+			String server = (String) propertySource.getProperty("server");
 			String protocol = (String) propertySource.getProperty("protocol");
 			int port = Integer.parseInt((String) propertySource.getProperty("port"));
-			
-			Properties props = new Properties();
-			if ("imaps".equalsIgnoreCase(protocol)) {
-				props.setProperty("mail.imap.socketFactory.class", SSL_FACTORY);
-				props.setProperty("mail.imap.socketFactory.fallback", "false");
-			} else if ("pop3s".equalsIgnoreCase(protocol)) {
-				props.setProperty("mail.pop3.socketFactory.class", SSL_FACTORY);
-				props.setProperty("mail.pop3.socketFactory.fallback", "false");
-			}
-
-			Session session = Session.getInstance(props);
-			Store store = null;
-	    	try {
-				store = session.getStore(protocol);
-				if (port >= 0) {
-					store.connect(serverAddress, port, username, password);
-				} else {
-					store.connect(serverAddress, username, password);
-				}
-				
-				getRoots(store.getDefaultFolder()).stream().map( f -> f.toString()).forEach(log::info);
-				
-			} catch (MessagingException e) {
-				log.severe("Error when connecting to mailbox: " + e);
-				throw new AuthenticationException("Authentication failed. Check username/password.");
-			} catch (Exception e) {
-				throw new RuntimeException("Could not retrieve the list of folders from the email box.",  e);
-			} finally {
-				if (store != null)
-					store.close();
-			}
+			getFolders(username, password, server, protocol, port).stream().map( f -> f.toString()).forEach(log::info);
 		};
+	}
+	
+	public static List<Folder> getFolders(String username, String password, String server, String protocol, int port) throws AuthenticationException, MessagingException {
+		Properties props = new Properties();
+		if ("imaps".equalsIgnoreCase(protocol)) {
+			props.setProperty("mail.imap.socketFactory.class", SSL_FACTORY);
+			props.setProperty("mail.imap.socketFactory.fallback", "false");
+		} else if ("pop3s".equalsIgnoreCase(protocol)) {
+			props.setProperty("mail.pop3.socketFactory.class", SSL_FACTORY);
+			props.setProperty("mail.pop3.socketFactory.fallback", "false");
+		}
+
+		Session session = Session.getInstance(props);
+		Store store = null;
+    	try {
+			store = session.getStore(protocol);
+			if (port >= 0) {
+				store.connect(server, port, username, password);
+			} else {
+				store.connect(server, username, password);
+			}
+			
+			return getRoots(store.getDefaultFolder());
+			
+		} catch (MessagingException e) {
+			log.severe("Error when connecting to mailbox: " + e);
+			throw new AuthenticationException("Authentication failed. Error:" + e);
+		} catch (Exception e) {
+			throw new RuntimeException("Could not retrieve the list of folders from the email box.",  e);
+		} finally {
+			if (store != null)
+				store.close();
+		}
 	}
 	
 	/**
 	 * @return list of all the root folders.
 	 */
-	public List<Folder> getRoots(Folder root) {
+	public static List<Folder> getRoots(Folder root) {
 		List<Folder> roots = new ArrayList<Folder>();
 		Folder[] list = null;
 		try {
@@ -98,8 +114,14 @@ public class SpringBootMailReaderApplication {
 		return roots;
 	}
 	
-	
+
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+        return application.sources(SpringBootMailReaderApplication.class);
+    }
+    
 	public static void main(String[] args) {
 		SpringApplication.run(SpringBootMailReaderApplication.class, args);
 	}
+	
 }
