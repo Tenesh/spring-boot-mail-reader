@@ -11,6 +11,7 @@ import javax.naming.AuthenticationException;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -63,6 +64,17 @@ public class ConnectController {
 		
 		return "Folders: " + sb + " \nSSL: " + logs;
 	}
+
+	@RequestMapping("/provider")
+	public @ResponseBody String demo(@RequestParam(value="addProvider", defaultValue="false") boolean add) {
+		log.info("Demo");
+		if (add)
+			Security.addProvider(new BouncyCastleProvider());
+		else 
+			Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME);
+		return "Hello from controller backed by so many providers: " +  Arrays.toString(Security.getProviders());
+	}
+	
 	
 	@ExceptionHandler
 	public @ResponseBody String onError(Exception e) {
